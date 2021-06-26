@@ -8,19 +8,20 @@ namespace Database
 { 
     public partial class ConnectionDialog : Window
     {
-        public delegate bool TestConnectionDelegate(string server, string userID, string password, string database);
-        public TestConnectionDelegate testConnectionClicked;
+        public delegate bool TestConnection(string server, string userID, string password, string database);
+        public TestConnection TestConnectionClicked;
 
         public ConnectionDialog()
         {
             InitializeComponent();
         }
 
-        private void connectButton_Click(object sender, RoutedEventArgs e)
+        private void ConnectButton_Click (object sender, RoutedEventArgs e)
         {
-            if (testConnectionClicked != null)
+            if (TestConnectionClicked != null)
             {
-                bool successful = testConnectionClicked(serverTextBox.Text, userIDTextBox.Text, passwordTextBox.Password, databaseTextBox.Text);
+                bool successful = TestConnectionClicked(serverTextBox.Text, userIDTextBox.Text, passwordTextBox.Password, databaseTextBox.Text);
+
                 if (successful)
                 {
                     connectionLight.Fill = new SolidColorBrush(Colors.LightGreen);
@@ -34,7 +35,7 @@ namespace Database
             }
         }
 
-        private void textChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        private void TextChanged (object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
             if (IsLoaded)
             {
@@ -44,16 +45,11 @@ namespace Database
             }
         }
 
-        private void passwordChanged(object sender, RoutedEventArgs e)
+        private void PasswordChanged (object sender, RoutedEventArgs e)
         {
             connectionLight.Fill = new SolidColorBrush(Colors.Gray);
             testConnectionButton.IsEnabled = true;
             cancelButton.Content = "Cancel";
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            // confirm whether user wants to close window
         }
     }
 }

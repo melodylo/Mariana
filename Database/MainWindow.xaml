@@ -3,33 +3,44 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Database"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="630" Width="800"
+        Closing="Window_Closing">
     <Grid>
         <StackPanel Orientation="Vertical">
-            <WpfPlot Name="plot" HorizontalAlignment="Center" Margin="5" VerticalAlignment="Top" Height="291" Width="460"/>
+            <WpfPlot x:Name="plot" Height="400" Width="auto"/>
             <StackPanel Orientation="Horizontal">
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="60,0,0,0">Database</Label>
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0">Select table</Label>
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0">Select x-axis</Label>
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0">Select y-axis</Label>
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0">Graph</Label>
+                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="60,0,0,0" Content="Database"/>
+                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0" Content="Select table"/>
+                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0" Content="Select x-axis"/>
+                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0" Content="Select y-axis"/>
+                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0" Content="Graph"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <Button Name="button_connect" Content="Connect" Click="buttonClick_connect" Width="120" Margin="60,0,0,0"/>
-                <ComboBox Name="comboBox_tables" SelectionChanged="tableSelected" HorizontalContentAlignment="Center" Padding="5,1,0,0" Width="120" Margin="20,0,0,0"/>
-                <ComboBox Name="comboBox_x" HorizontalContentAlignment="Center" Padding="5,1,0,0" Width="120" Margin="20,0,0,0"/>
-                <ComboBox Name="comboBox_y" HorizontalContentAlignment="Center" Padding="5,1,0,0" Width="120" Margin="20,0,0,0"/>
-                <Button Name="button_plotData" Content="Plot data" IsEnabled="False" Click="buttonClick_plotData" Width="120" Margin="20,0,0,0"/>
+                <Button x:Name="button_connect" Content="Connect" Click="ButtonClick_Connect" Width="120" Margin="60,0,0,0"/>
+                <ComboBox x:Name="comboBox_tables" SelectionChanged="TableSelected" HorizontalContentAlignment="Center" Padding="5,1,0,0" Width="120" Margin="20,0,0,0"/>
+                <ComboBox x:Name="comboBox_xAxis" HorizontalContentAlignment="Center" Padding="5,1,0,0" Width="120" Margin="20,0,0,0"/>
+                <ComboBox x:Name="comboBox_yAxis" HorizontalContentAlignment="Center" Padding="5,1,0,0" Width="120" Margin="20,0,0,0"/>
+                <Button x:Name="button_plotData" Content="Plot data" IsEnabled="False" Click="ButtonClick_PlotData" Width="120" Margin="20,0,0,0"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <Button Name="button_disconnect" Content="Disconnect" IsEnabled="False" Click="buttonClick_disconnect" Width="120"  Margin="60,5,0,0"/>
-                <Button Name="button_clear" Content="Clear" IsEnabled="False" Click="buttonClick_clear" Width="120" Margin="440,5,0,0"/>
+                <Button x:Name="button_disconnect" Content="Disconnect" IsEnabled="False" Click="ButtonClick_Disconnect" Width="120"  Margin="60,5,0,0"/>
+                <Button x:Name="button_clear" Content="Clear" IsEnabled="False" Click="ButtonClick_Clear" Width="120" Margin="440,5,0,0"/>
+            </StackPanel>
+            <StackPanel Orientation="Vertical">
+                <Label Content="Filter x-axis" Margin="90,20,0,0"/>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox x:Name="checkBox_xMin" Margin="60,5,5,0"/>
+                    <TextBlock Text="&gt;" Padding="0,3,0,0"/>
+                    <TextBox x:Name ="textBox_xMin" Text="Enter min..." Foreground="Gray" GotFocus="TextBoxFocus_xMin" LostFocus="TextBoxNotFocus_xMin" HorizontalContentAlignment="Center" Width="85" Height="25" Padding="0,3,0,0" Margin="5,0,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox x:Name="checkBox_xMax" Margin="60,15,5,0"/>
+                    <TextBlock Text="&lt;" Padding="0,13,0,0"/>
+                    <TextBox x:Name ="textBox_xMax" Text="Enter max..." Foreground="Gray" GotFocus="TextBoxFocus_xMax" LostFocus="TextBoxNotFocus_xMax" HorizontalContentAlignment="Center" Width="85" Height="25" Padding="0,3,0,0" Margin="5,10,0,0"/>
+                </StackPanel>
             </StackPanel>
         </StackPanel>
-        
-
     </Grid>
 </Window>
 
