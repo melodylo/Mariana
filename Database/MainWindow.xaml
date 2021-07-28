@@ -1,44 +1,225 @@
-﻿<Window x:Class="Database.MainWindow"
+﻿<Window x:Class="DatabaseToGraph.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        DataContext="{Binding RelativeSource={RelativeSource self}}"
         mc:Ignorable="d"
-        Title="MainWindow" Height="630" Width="800"
+        Title="MainWindow" 
+        Height="830" 
+        Width="1500"
         Closing="Window_Closing">
     <Grid>
         <StackPanel Orientation="Vertical">
-            <WpfPlot x:Name="plot" Height="400" Width="auto"/>
+            <TextBlock x:Name="hoveredPoint_xyText"
+                       FontSize="24"
+                       Margin="500,5,0,0"/>
             <StackPanel Orientation="Horizontal">
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="60,0,0,0" Content="Database"/>
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0" Content="Select table"/>
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0" Content="Select x-axis"/>
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0" Content="Select y-axis"/>
-                <Label Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="20,0,0,0" Content="Graph"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <Button x:Name="button_connect" Content="Connect" Click="ButtonClick_Connect" Width="120" Margin="60,0,0,0"/>
-                <ComboBox x:Name="comboBox_tables" SelectionChanged="TableSelected" HorizontalContentAlignment="Center" Padding="5,1,0,0" Width="120" Margin="20,0,0,0"/>
-                <ComboBox x:Name="comboBox_xAxis" HorizontalContentAlignment="Center" Padding="5,1,0,0" Width="120" Margin="20,0,0,0"/>
-                <ComboBox x:Name="comboBox_yAxis" HorizontalContentAlignment="Center" Padding="5,1,0,0" Width="120" Margin="20,0,0,0"/>
-                <Button x:Name="button_plotData" Content="Plot data" IsEnabled="False" Click="ButtonClick_PlotData" Width="120" Margin="20,0,0,0"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <Button x:Name="button_disconnect" Content="Disconnect" IsEnabled="False" Click="ButtonClick_Disconnect" Width="120"  Margin="60,5,0,0"/>
-                <Button x:Name="button_clear" Content="Clear" IsEnabled="False" Click="ButtonClick_Clear" Width="120" Margin="440,5,0,0"/>
-            </StackPanel>
-            <StackPanel Orientation="Vertical">
-                <Label Content="Filter x-axis" Margin="90,20,0,0"/>
-                <StackPanel Orientation="Horizontal">
-                    <CheckBox x:Name="checkBox_xMin" Margin="60,5,5,0"/>
-                    <TextBlock Text="&gt;" Padding="0,3,0,0"/>
-                    <TextBox x:Name ="textBox_xMin" Text="Enter min..." Foreground="Gray" GotFocus="TextBoxFocus_xMin" LostFocus="TextBoxNotFocus_xMin" HorizontalContentAlignment="Center" Width="85" Height="25" Padding="0,3,0,0" Margin="5,0,0,0"/>
+                <WpfPlot x:Name="plot" Height="570" Width="1200" HorizontalAlignment="Left" MouseMove="MouseMove_plot"/>
+                <StackPanel Orientation="Vertical">
+                    <ListView x:Name="listView_plottedLines" ItemsSource="{Binding PlottedLines}" Margin="0,20,0,0" Width="285" BorderThickness="0">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding Path=Visible}" 
+                                              Checked="LineVisibility" 
+                                              Unchecked="LineVisibility" 
+                                              Margin="0,1,0,0"/>
+                                    <Rectangle Width="12" Height="12" Fill="{Binding Path=Hex}" Margin="8,0,5,2"/>
+                                    <TextBlock Text="{Binding Path=Name}"/>
+                                    <Button Content="X" 
+                                            Background="PaleVioletRed" 
+                                            Foreground="White" 
+                                            Margin="10,0,0,5" 
+                                            Height="15" 
+                                            Width="15" 
+                                            FontSize="8" 
+                                            VerticalAlignment="Stretch"  
+                                            Click="ButtonClick_deleteLine">
+                                        <Button.Style>
+                                            <Style TargetType="{x:Type Button}">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="{x:Type Button}">
+                                                            <Border x:Name="Border" Background="{TemplateBinding Background}">
+                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="lightpink" TargetName="Border" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                        <!--<ListView.ItemContainerStyle>
+                            <Style TargetType="{x:Type ListViewItem}">
+                                <Setter Property="Focusable" Value="False"/>
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type ListViewItem}">
+                                            <ContentPresenter />
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListView.ItemContainerStyle>-->
+                    </ListView>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <CheckBox x:Name="checkBox_xMax" Margin="60,15,5,0"/>
-                    <TextBlock Text="&lt;" Padding="0,13,0,0"/>
-                    <TextBox x:Name ="textBox_xMax" Text="Enter max..." Foreground="Gray" GotFocus="TextBoxFocus_xMax" LostFocus="TextBoxNotFocus_xMax" HorizontalContentAlignment="Center" Width="85" Height="25" Padding="0,3,0,0" Margin="5,10,0,0"/>
-                </StackPanel>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="100,0,0,0">
+                <Border BorderThickness="1" BorderBrush="LightSlateGray" Padding="5">
+                    <StackPanel Orientation="Vertical">
+                        <Label Content="Database" 
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           Width="140"
+                           HorizontalContentAlignment="Center"/>
+                        <Button Content="Connect" 
+                                Click="ButtonClick_Connect" 
+                                Height="25"
+                                Width="140"
+                                IsEnabled="{Binding EnableConnectButton}"/>
+                        <Button Content="Disconnect" 
+                                IsEnabled="{Binding EnableDisconnectButton}" 
+                                Click="ButtonClick_Disconnect"
+                                Height="25"
+                                Width="140"  
+                                Margin="0,5,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border BorderThickness="1" BorderBrush="LightSlateGray" Padding="5" Margin="20,0,0,0">
+                    <StackPanel Orientation="Vertical">
+                        <Label Content="Table" 
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               HorizontalContentAlignment="Center"/>
+                        <ComboBox x:Name="comboBox_tables"
+                                  IsEditable="True" 
+                                  IsReadOnly="True" 
+                                  Focusable="False" 
+                                  Text="Select table..." 
+                                  ItemsSource="{Binding Database.Tables}"
+                                  SelectionChanged="TableSelected" 
+                                  HorizontalContentAlignment="Center" 
+                                  Padding="5,3,0,0" 
+                                  Height="25"
+                                  Width="140"/>
+                    </StackPanel>
+                </Border>
+                <Border BorderThickness="1" BorderBrush="LightSlateGray" Padding="5" Margin="20,0,0,0">
+                    <StackPanel Orientation="Vertical">
+                        <Label Content="X-Axis"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               HorizontalContentAlignment="Center"/>
+                        <ComboBox x:Name="comboBox_xColumn" 
+                                  IsEditable="True" 
+                                  IsReadOnly="True" 
+                                  Focusable="False" 
+                                  Text="Select column..." 
+                                  ItemsSource="{Binding Database.Columns}"
+                                  HorizontalContentAlignment="Center" 
+                                  Padding="5,3,0,0"
+                                  Height="25"
+                                  Width="140"/>
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox x:Name="checkBox_xMin" Content="&gt;" Margin="0,10,5,0"/>
+                            <TextBox x:Name ="textBox_xMin" 
+                                     Text="Enter min..." 
+                                     Foreground="Gray" 
+                                     GotFocus="TextBoxFocus_xMin" 
+                                     LostFocus="TextBoxNotFocus_xMin" 
+                                     HorizontalContentAlignment="Center" 
+                                     Height="25"
+                                     Width="107"
+                                     Padding="0,3,0,0"
+                                     Margin="0,5,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox x:Name="checkBox_xMax" Content="&lt;" Margin="0,10,5,0"/>
+                            <TextBox x:Name ="textBox_xMax" 
+                                     Text="Enter max..." 
+                                     Foreground="Gray" 
+                                     GotFocus="TextBoxFocus_xMax"
+                                     LostFocus="TextBoxNotFocus_xMax"
+                                     HorizontalContentAlignment="Center" 
+                                     Height="25"
+                                     Width="107"
+                                     Padding="0,3,0,0"
+                                     Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <Border BorderThickness="1" BorderBrush="LightSlateGray" Padding="5" Margin="20,0,0,0">
+                    <StackPanel Orientation="Vertical">
+                        <Label Content="Y-Axis"
+                               FontWeight="SemiBold"
+                               FontSize="13"
+                               HorizontalContentAlignment="Center"/>
+                        <ComboBox x:Name="comboBox_yColumn" 
+                                  IsEditable="True" 
+                                  IsReadOnly="True" 
+                                  Focusable="False" 
+                                  Text="Select column..." 
+                                  ItemsSource="{Binding Database.Columns}"
+                                  HorizontalContentAlignment="Center" 
+                                  Height="25"
+                                  Width="140"
+                                  Padding="10,3,0,0" />
+                        <Label Content="Axis" FontWeight="SemiBold" HorizontalContentAlignment="Center" />
+                        <RadioButton x:Name="radioButton_primary" Content="Primary" GroupName="yAxis" IsChecked="True" Margin="40,0,0,5"/>
+                        <RadioButton x:Name="radioButton_secondary" Content="Secondary" GroupName="yAxis" Margin="40,0,0,0"/>
+                        <Label Content="Scale" HorizontalContentAlignment="Center" FontWeight="SemiBold"/>
+                        <RadioButton x:Name="radioButton_linear" Content="Linear" GroupName="yScale" IsChecked="True" Checked="ChangeAxisScale" Margin="40,0,0,5"/>
+                        <RadioButton x:Name="radioButton_logarithmic" Content="Logarithmic" GroupName="yScale" Checked="ChangeAxisScale" Margin="40,0,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border BorderThickness="1" BorderBrush="LightSlateGray" Padding="5" Margin="20,0,0,0">
+                    <StackPanel Orientation="Vertical">
+                        <Label Content="Show Coordinates"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               HorizontalContentAlignment="Center"
+                               Height="25"
+                               Width="140"/>
+                        <RadioButton x:Name="showCoordinates_on" Content="On" GroupName="coordinates" Margin="50,5,0,0"/>
+                        <RadioButton x:Name="showCoordinates_off" 
+                                     Content="Off" 
+                                     IsChecked="True"
+                                     GroupName="coordinates" 
+                                     Checked="DisableCoordinates" 
+                                     Margin="50,5,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border BorderThickness="1" BorderBrush="LightSlateGray" Padding="5" Margin="20,0,0,0">
+                    <StackPanel Orientation="Vertical">
+                        <Label Content="Graph" 
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           Width="140"
+                           HorizontalContentAlignment="Center"/>
+                        <Button Content="Add line" 
+                                IsEnabled="{Binding EnableAddLineButton}" 
+                                Click="ButtonClick_AddLine" 
+                                Height="25"
+                                Width="140"/>
+                        <Button Content="Clear" 
+                                IsEnabled="{Binding EnableClearButton}"
+                                Height="25"
+                                Width="140"
+                                Click="ButtonClick_Clear"
+                                Margin="0,5,0,0"/>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </StackPanel>
     </Grid>

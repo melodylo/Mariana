@@ -1,63 +1,208 @@
-﻿using MySql.Data.MySqlClient;
-using System.Windows;
-using System.Data;
-using System.Windows.Media;
+﻿using ScottPlot.Plottable;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Windows.Controls;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
 
-namespace Database
+namespace DatabaseToGraph
 {
-    public partial class MainWindow : Window
+    public class Line : INotifyPropertyChanged
     {
-        private MySqlConnection connection;
+        public event PropertyChangedEventHandler PropertyChanged;
+        public ScatterPlot Plottable { get; set; }
+        public ObservableCollection<Point> Points { get; set; } = new();
+        public string YAxis { get; set; }
 
-        public MainWindow()
+        private string name;
+        public string Name
+        {
+            get => name;
+            set
+            {
+                name = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        public string Hex => color.ToString();
+
+        public Color color;
+        public Color Color
+        {
+            get => color;
+            set
+            {
+                color = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        private bool visible = true;
+        public bool Visible
+        {
+            get => visible;
+            set
+            {
+                visible = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        private void NotifyPropertyChanged ([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    public class Axis
+    {
+        public string Name { get; set; }
+        public string Scale { get; set; }
+        public List<Line> Lines { get; set; } = new();
+    }
+
+    public partial class MainWindow : Window, INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void NotifyPropertyChanged ([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private string databaseName;
+        private readonly List<Color> colorsUsed = new();
+        private readonly List<Axis> yAxes = new();
+        private readonly ScatterPlot hoveredPoint;
+
+        private SqlDB database = new();
+        public SqlDB Database 
+        { 
+            get => database; 
+            set
+            {
+                database = value;
+                NotifyPropertyChanged();
+            }
+        }
+        public ObservableCollection<Line> PlottedLines { get; } = new();
+
+        #region Buttons
+        private bool connectButton_enable = true;
+        public bool EnableConnectButton
+        {
+            get => connectButton_enable;
+            set
+            {
+                connectButton_enable = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        private bool disconnectButton_enable;
+        public bool EnableDisconnectButton
+        {
+            get => disconnectButton_enable;
+            set
+            {
+                disconnectButton_enable = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        private bool addLineButton_enable;
+        public bool EnableAddLineButton
+        {
+            get => addLineButton_enable;
+            set
+            {
+                addLineButton_enable = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        private bool clearButton_enable;
+        public bool EnableClearButton
+        {
+            get => clearButton_enable;
+            set
+            {
+                clearButton_enable = value;
+                NotifyPropertyChanged();
+            }
+        }
+        #endregion
+
+        public MainWindow ()
         {
             InitializeComponent();
+
+            database.PropertyChanged += new PropertyChangedEventHandler(DatabasePropertyChanged);
+
+            listView_plottedLines.ItemsSource = PlottedLines;
+
+            plot.Plot.YAxis.Label("Primary");
+            plot.Plot.YAxis2.Label("Secondary");
+            plot.Plot.YAxis2.Ticks(true);
+
+            plot.Plot.Palette = ScottPlot.Drawing.Palette.Category20;
+
+            Axis primary = new();
+            primary.Name = "primary";
+            primary.Scale = "linear";
+
+            Axis secondary = new();
+            secondary.Name = "secondary";
+            primary.Scale = "linear";
+
+            yAxes.Add(primary);
+            yAxes.Add(secondary);
+
+            hoveredPoint = plot.Plot.AddPoint(0, 0);
+            hoveredPoint.Color = System.Drawing.Color.Black;
+            hoveredPoint.MarkerSize = 10;
+            hoveredPoint.MarkerShape = ScottPlot.MarkerShape.filledCircle;
+            hoveredPoint.IsVisible = false;
         }
 
-        private bool TestConnection (string server, string userID, string password, string database)
+        private void DatabasePropertyChanged (object sender, PropertyChangedEventArgs e)
         {
-            if (connection != null)
+            if (e.PropertyName == nameof(database.Connection))
             {
-                disconnect();
+                if (!database.ConnectionSuccessful)
+                {
+                    EnableAddLineButton = false;
+                    EnableDisconnectButton = false;
+                    EnableConnectButton = true;
+                }
             }
-
-            string connectionstring = "server=" + server + ";uid=" + userID +
-                ";pwd=" + password + ";database=" + database;
-            connection = new MySqlConnection(connectionstring);
-
-            bool connectionSuccessful;
-            try
-            {
-                connection.Open();
-                connectionSuccessful = true;
-
-                AddTables();
-
-                button_plotData.IsEnabled = true;
-                button_disconnect.IsEnabled = true;
-                button_connect.IsEnabled = false;
-            }
-            catch
-            {
-                connectionSuccessful = false;
-            }
-
-            return connectionSuccessful;
         }
 
-        private void AddTables ()
+        private bool TestConnection (string server, string userID, string password, string databaseName)
         {
-            DataTable tables = connection.GetSchema("Tables");
-            foreach (DataRow row in tables.Rows)
+            bool connectionSuccessful = database.TestConnection(server, userID, password, databaseName);
+
+            if (connectionSuccessful)
             {
-                comboBox_tables.Items.Add(row[2].ToString());
+                database.AddTables();
+
+                EnableAddLineButton = true;
+                EnableDisconnectButton = true;
+                EnableConnectButton = false;
+
+                this.databaseName = databaseName;
             }
+
+            return database.ConnectionSuccessful;
         }
 
         private void ButtonClick_Connect (object sender, RoutedEventArgs e)
         {
-            ConnectionDialog connectionDialog = new();
+            ConnectionDialog connectionDialog = new(ref database);
 
             // get info for sql connection string
             connectionDialog.TestConnectionClicked += new ConnectionDialog.TestConnection(TestConnection);
@@ -65,22 +210,37 @@ namespace Database
             connectionDialog.ShowDialog();
         }
 
-        private void ButtonClick_PlotData (object sender, RoutedEventArgs e)
+        private void ButtonClick_AddLine (object sender, RoutedEventArgs e)
         {
             if (comboBox_tables.SelectedItem != null)
             {
-                if (comboBox_xAxis.SelectedItem != null)
+                if (comboBox_xColumn.SelectedItem != null)
                 {
-                    if (comboBox_yAxis.SelectedItem != null)
+                    if (comboBox_yColumn.SelectedItem != null)
                     {
                         (string xMin, string xMax) = Assign_xMinMax();
                         if (Valid_xMinMax(xMin, xMax))
                         {
-                            List<(double, double)> points = MakeQuery(xMin, xMax);
-                            (double[] x, double[] y) = ConvertListToArray(points);
+                            string tableName = comboBox_tables.SelectedItem.ToString();
+                            string yAxis = comboBox_yColumn.SelectedItem.ToString();
+                            string lineName = tableName + " (" + databaseName + "): " + yAxis;
+
+                            foreach (Line currentLine in PlottedLines)
+                            {
+                                if (currentLine.Name == lineName)
+                                {
+                                    string message = "This line already exists.";
+                                    string title = "Duplicate line";
+                                    MessageBox.Show(message, title);
+                                    return;
+                                }
+                            }
+
+                            MakeQuery(xMin, xMax);
+                            (double[] x, double[] y) = ConvertListToArray(lineName);
                             if (x.Length != 0 && y.Length != 0)
                             {
-                                PlotData(x, y);
+                                AddLine(x, y, lineName);
                             }
                             else
                             {
@@ -88,20 +248,19 @@ namespace Database
                                 string title = "Plot data";
                                 MessageBox.Show(message, title);
                             }
-                            plot.Plot.Legend();
                         }
                     }
                     else
                     {
-                        string message = "Please select y-axis.";
-                        string title = "Missing y-axis";
+                        string message = "Please select column.";
+                        string title = "Y-Axis";
                         MessageBox.Show(message, title);
                     }
                 }
                 else
                 {
-                    string message = "Please select x-axis.";
-                    string title = "Missing x-axis";
+                    string message = "Please select column.";
+                    string title = "X-Axis";
                     MessageBox.Show(message, title);
                 }
             }
@@ -113,16 +272,29 @@ namespace Database
             }
         }
 
-        private static (double[], double[]) ConvertListToArray(List<(double, double)> points)
+        private (double[], double[]) ConvertListToArray(string lineName)
         {
-            double[] x = new double[points.Count];
-            double[] y = new double[points.Count];
+            Line currentLine = null;
+            foreach(Line line in PlottedLines)
+            {
+                if (line.Name == lineName)
+                {
+                    currentLine = line;
+                }
+            }
+            return GetXY(currentLine);
+        }
+
+        private (double[], double[]) GetXY (Line line)
+        {
+            double[] x = new double[line.Points.Count];
+            double[] y = new double[line.Points.Count];
 
             int index = 0;
-            foreach((double, double) point in points)
+            foreach (Point point in line.Points)
             {
-                x[index] = point.Item1;
-                y[index] = point.Item2;
+                x[index] = point.X;
+                y[index] = point.Y;
                 index++;
             }
             return (x, y);
@@ -143,72 +315,61 @@ namespace Database
             return (xMin, xMax);
         }
 
-        private List<(double, double)> MakeQuery (string xMin, string xMax)
+        private void MakeQuery (string xMin, string xMax)
         {
-            MySqlCommand command = connection.CreateCommand();
             string tableName = comboBox_tables.SelectedItem.ToString();
+            string xColumn = comboBox_xColumn.SelectedItem.ToString();
+            string yColumn = comboBox_yColumn.SelectedItem.ToString();
+            string name = tableName + " (" + databaseName + "): " + yColumn;
 
-            string xTable = comboBox_xAxis.SelectedItem.ToString();
-            string yTable = comboBox_yAxis.SelectedItem.ToString();
+            Line line = new();
+            line.Name = name;
 
-            command.CommandText = "SELECT " + xTable + "," + yTable + " FROM " + tableName;
-
-            if (xMin != null)
+            if ((bool) radioButton_primary.IsChecked)
             {
-                xMin = xMin.Replace(",", "");
+                line.YAxis = "primary";
             }
-            if (xMax != null)
+            else if ((bool) radioButton_secondary.IsChecked)
             {
-                xMax = xMax.Replace(",", "");
-            }
-
-            if (xMin != null && xMax != null)
-            {
-                command.CommandText += " WHERE " + xTable + " > " + xMin + " AND " + xTable + " < " + xMax;
-            }
-            else if (xMin != null)
-            {
-                command.CommandText += " WHERE " + xTable + " > " + xMin;
-            }
-            else if (xMax != null)
-            {
-                command.CommandText += " WHERE " + xTable + " < " + xMax;
+                line.YAxis = "secondary";
             }
 
-            string xAxis = comboBox_xAxis.SelectedItem.ToString();
-            string yAxis = comboBox_yAxis.SelectedItem.ToString();
+            Axis yAxis = yAxes.Find(axis => axis.Name == line.YAxis);
+            yAxis.Lines.Add(line);
 
-            List<(double, double)> points = new();
-
-            using (MySqlDataReader rowsReader = command.ExecuteReader())
+            if ((bool) radioButton_linear.IsChecked)
             {
-                while (rowsReader.Read())
-                {
-                    (double x, double y) point = (x: rowsReader.GetDouble(xAxis), y: rowsReader.GetDouble(yAxis));
-                    points.Add(point);
-                }
+                yAxis.Scale = "linear";
             }
-            return points;
+            else if ((bool) radioButton_logarithmic.IsChecked)
+            {
+                yAxis.Scale = "logarithmic";
+            }
+
+            line.Points = database.GetData(tableName, xColumn, yColumn, xMin, xMax);
+            PlottedLines.Add(line);
         }
 
-        private bool Valid_xMinMax (string xMin, string xMax)
+        private static bool Valid_xMinMax (string xMin, string xMax)
         {
             bool xMin_ok;
             bool xMax_ok;
+            double xMin_value = 0;
+            double xMax_value = 0;
             if (xMin == null)
             {
                 xMin_ok = true;
             }
             else
             {
-                if (double.TryParse(xMin, out double _))
+                if (double.TryParse(xMin, out xMin_value))
                 {
                     xMin_ok = true;
                 }
                 else
                 {
                     xMin_ok = false;
-                    string message = "The minimum value must be a number.";
+                    string message = "The min value must be a number.";
                     string title = "Filter x-axis";
                     MessageBox.Show(message, title);
                 }
@@ -220,73 +381,157 @@ namespace Database
             }
             else
             {
-                if (double.TryParse(xMax, out double _))
+                if (double.TryParse(xMax, out xMax_value))
                 {
                     xMax_ok = true;
                 }
                 else
                 {
                     xMax_ok = false;
-                    string message = "The maximum value must be a number.";
+                    string message = "The max value must be a number.";
                     string title = "Filter x-axis";
                     MessageBox.Show(message, title);
                 }
             }
-            return xMin_ok && xMax_ok;
+            
+            if (xMin_ok && xMax_ok)
+            {
+                if (xMax != null && xMin != null)
+                {
+                    if (xMax_value > xMin_value)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        string message = "The max value must be greater than the min value.";
+                        string title = "X-Axis";
+                        MessageBox.Show(message, title);
+                        return false;
+                    }
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                return false;
+            }
         }
 
-        private void PlotData (double[] x, double[] y)
+        private void AddLine (double[] x, double[] y, string lineName)
         {
-            string tableName = comboBox_tables.SelectedItem.ToString();
-            string yAxis = comboBox_yAxis.SelectedItem.ToString();
-            plot.Plot.AddScatter(x, y, markerSize: 0, label: tableName + ": " + yAxis);
-            button_clear.IsEnabled = true;
+            Line line = null;
+            string yAxis = null;
+            string yScale = null;
+            foreach(Line currentLine in PlottedLines)
+            {
+                if (currentLine.Name == lineName)
+                {
+                    line = currentLine;
+                    yAxis = currentLine.YAxis;
+                    yScale = yAxes.Find(axis => axis.Name == yAxis).Scale;
+                }
+            }
+
+            Color color = WindowsMediaColor(plot.Plot.GetNextColor());
+            ScottPlot.Drawing.Palette palette = ScottPlot.Drawing.Palette.Category20;
+            if (colorsUsed.Contains(color))
+            {
+                for (int i = 0; i < palette.Count(); i++)
+                {
+                    color = WindowsMediaColor(palette.GetColor(i));
+                    if (!colorsUsed.Contains(color))
+                    {
+                        colorsUsed.Add(color);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                colorsUsed.Add(color);
+            }
+            
+
+            ScatterPlot plottable = null;
+            if (yScale == "linear")
+            {
+                plottable = plot.Plot.AddScatter(x, y, markerSize: 0, label: lineName, color: DrawingColor(color));
+                plot.Plot.YAxis.MinorLogScale(true);
+            }
+            else if (yScale == "logarithmic")
+            {
+                plottable = plot.Plot.AddScatter(x, ScottPlot.Tools.Log10(y), markerSize: 0, label: lineName, color: DrawingColor(color));
+                plot.Plot.YAxis.MinorLogScale(false);
+            }
+            line.Plottable = plottable;
+            line.Color = color;
+
+            if (yAxis == "Primary")
+            {
+                plottable.YAxisIndex = 1;
+                plot.Plot.YAxis.Color(plottable.Color);
+            }
+            else if (yAxis == "Secondary")
+            {
+                plottable.YAxisIndex = 1;
+                plot.Plot.YAxis2.Ticks(true);
+                plot.Plot.YAxis2.Color(plottable.Color);
+            }
+
+            EnableClearButton = true;
+        }
+
+        private static Color WindowsMediaColor (System.Drawing.Color color)
+        {
+            return Color.FromArgb(color.A, color.R, color.G, color.B);
+        }
+
+        private static System.Drawing.Color DrawingColor (Color color)
+        {
+            return System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
         }
 
         private void ButtonClick_Disconnect (object sender, RoutedEventArgs e)
         {
-            disconnect();
-        }
+            database.Disconnect();
 
-        private void disconnect()
-        {
-            connection.Close();
-            connection = null;
-            button_connect.IsEnabled = true;
-            button_disconnect.IsEnabled = false;
-            button_plotData.IsEnabled = false;
+            EnableConnectButton = true;
+            EnableDisconnectButton = false;
+            EnableAddLineButton = false;
 
-            comboBox_tables.Items.Clear();
-            comboBox_xAxis.Items.Clear();
-            comboBox_yAxis.Items.Clear();
+            comboBox_tables.Text = "Select table...";
+            comboBox_xColumn.Text = "Select column...";
+            comboBox_yColumn.Text = "Select column...";
         }
 
         private void ButtonClick_Clear (object sender, RoutedEventArgs e)
         {
-            plot.Reset();
-            button_clear.IsEnabled = false;
+            plot.Plot.Clear();
+            EnableClearButton = false;
+            PlottedLines.Clear();
+
+            foreach(Axis yAxis in yAxes)
+            {
+                yAxis.Lines.Clear();
+            }
+
+            plot.Plot.YAxis.Color(System.Drawing.Color.Black);
+            plot.Plot.YAxis2.Color(System.Drawing.Color.Black);
         }
 
-        private void TableSelected (object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void TableSelected (object sender, SelectionChangedEventArgs e)
         {
-            comboBox_xAxis.Items.Clear();
-            comboBox_yAxis.Items.Clear();
-
             if (IsLoaded && comboBox_tables.SelectedItem != null)
             {
-                string tableName = comboBox_tables.SelectedItem.ToString();
-                MySqlCommand command = connection.CreateCommand();
-                command.CommandText = "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "'";
-                using MySqlDataReader columnsReader = command.ExecuteReader();
-                while (columnsReader.Read())
-                {
-                    comboBox_xAxis.Items.Add(columnsReader.GetString(3));
-                    comboBox_yAxis.Items.Add(columnsReader.GetString(3));
-                }
+                database.AddColumns(comboBox_tables.SelectedItem.ToString());
             }
         }
 
-        private void Window_Closing (object sender, System.ComponentModel.CancelEventArgs e)
+        private void Window_Closing (object sender, CancelEventArgs e)
         {
             string message = "Close window?";
             string title = "Confirm close";
@@ -330,6 +575,142 @@ namespace Database
             {
                 textBox_xMax.Text = "Enter max...";
                 textBox_xMax.Foreground = Brushes.Gray;
+            }
+        }
+
+        private void ButtonClick_deleteLine (object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            Line line = button.DataContext as Line;
+            string name = line.Name;
+
+            foreach (Line currentLine in PlottedLines)
+            {
+                if (currentLine.Name == name)
+                {
+                    plot.Plot.Remove(line.Plottable);
+                    plot.Render();
+
+                    PlottedLines.Remove(currentLine);
+                    colorsUsed.Remove(currentLine.Color);
+                    Axis yAxis = yAxes.Find(axis => axis.Name == currentLine.YAxis);
+                    yAxis.Lines.Remove(currentLine);
+                    break;
+                }
+            }
+
+            if (PlottedLines.Count == 0)
+            {
+                plot.Plot.Clear();
+                plot.Plot.YAxis.Color(System.Drawing.Color.Black);
+                plot.Plot.YAxis2.Color(System.Drawing.Color.Black);
+                EnableClearButton = false;
+            }
+        }
+
+        private void LineVisibility (object sender, RoutedEventArgs e)
+        {
+            foreach (Line line in PlottedLines)
+            {
+                line.Plottable.IsVisible = line.Visible;
+                plot.Render();
+            }
+        }
+
+        private void ChangeAxisScale (object sender, RoutedEventArgs e)
+        {
+            if (IsLoaded)
+            {
+                RadioButton button = sender as RadioButton;
+                string scale = button.Content.ToString().ToLower();
+                string axisName = null;
+                if ((bool) radioButton_primary.IsChecked)
+                {
+                    axisName = "primary";
+                }
+                else if ((bool) radioButton_secondary.IsChecked)
+                {
+                    axisName = "secondary";
+                }
+                Axis yAxis = yAxes.Find(axis => axis.Name == axisName);
+                if (yAxis.Scale != scale)
+                {
+                    yAxis.Scale = scale;
+                    foreach(Line line in yAxis.Lines)
+                    {
+                        plot.Plot.Remove(line.Plottable);
+                        (double[] x, double[] y) = GetXY(line);
+                        ScatterPlot plottable = null;
+                        if (scale == "linear")
+                        {
+                            plottable = plot.Plot.AddScatter(x, y, markerSize: 0, label: line.Name, color: DrawingColor(line.Color));
+                        }
+                        else if (scale == "logarithmic")
+                        {
+                            plottable = plot.Plot.AddScatter(x, ScottPlot.Tools.Log10(y), markerSize: 0, label: line.Name, color: DrawingColor(line.Color));
+                        }
+                        line.Plottable = plottable;
+                    }
+                    plot.Plot.YAxis.MinorLogScale(true);
+                    plot.Render();
+                }
+            }
+        }
+
+        private void MouseMove_plot (object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (PlottedLines.Count != 0)
+            {
+                if ((bool) showCoordinates_on.IsChecked)
+                {
+                    (double mouseX, double mouseY) = plot.GetMouseCoordinates();
+                    double minDistance = double.MaxValue;
+                    double minX = 0;
+                    double minY = 0;
+                    foreach (Line line in PlottedLines)
+                    {
+                        double xyRatio = 0;
+                        if (line.YAxis == "primary")
+                        {
+                            xyRatio = plot.Plot.XAxis.Dims.PxPerUnit / plot.Plot.YAxis.Dims.PxPerUnit;
+                        }
+                        else if (line.YAxis == "secondary")
+                        {
+                            xyRatio = plot.Plot.XAxis2.Dims.PxPerUnit / plot.Plot.YAxis2.Dims.PxPerUnit;
+                        }
+                        (double lineX, double lineY, _) = line.Plottable.GetPointNearest(mouseX, mouseY, xyRatio);
+
+                        double xDiff = Math.Abs(lineX - mouseX);
+                        double yDiff = Math.Abs(lineY - mouseY);
+
+                        double x2 = Math.Pow(xDiff, 2);
+                        double y2 = Math.Pow(yDiff, 2);
+
+                        double distance = Math.Sqrt(x2 + y2);
+                        if (distance < minDistance)
+                        {
+                            minDistance = distance;
+                            minX = lineX;
+                            minY = lineY;
+                        }
+                    }
+                    hoveredPoint.Xs[0] = minX;
+                    hoveredPoint.Ys[0] = minY;
+                    hoveredPoint.IsVisible = true;
+                    plot.Render();
+
+                    hoveredPoint_xyText.Text = $"(x, y): ({ minX:N2}, { minY:N2})";
+                }
+            }
+        }
+
+        private void DisableCoordinates (object sender, RoutedEventArgs e)
+        {
+            if (hoveredPoint != null)
+            {
+                hoveredPoint_xyText.Text = "";
+                hoveredPoint.IsVisible = false;
+                plot.Render();
             }
         }
     }

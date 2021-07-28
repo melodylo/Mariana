@@ -1,28 +1,31 @@
 ﻿using MySql.Data.MySqlClient;
-using ScottPlot;
 using System.Windows;
 using System.Windows.Media;
 
 
-namespace Database
-{ 
+namespace DatabaseToGraph
+{
     public partial class ConnectionDialog : Window
     {
-        public delegate bool TestConnection(string server, string userID, string password, string database);
-        public TestConnection TestConnectionClicked;
+        public delegate bool TestConnection (string server, string userID, string password, string database);
+        internal TestConnection TestConnectionClicked;
+        public SqlDB Database { get; set; }
 
-        public ConnectionDialog()
+        public ConnectionDialog (ref SqlDB database)
         {
             InitializeComponent();
+
+            Database = database;
         }
 
         private void ConnectButton_Click (object sender, RoutedEventArgs e)
         {
             if (TestConnectionClicked != null)
             {
-                bool successful = TestConnectionClicked(serverTextBox.Text, userIDTextBox.Text, passwordTextBox.Password, databaseTextBox.Text);
+                bool connectionSuccessful = TestConnectionClicked(
+                    serverTextBox.Text, userIDTextBox.Text, passwordTextBox.Password, databaseTextBox.Text);
 
-                if (successful)
+                if (connectionSuccessful)
                 {
                     connectionLight.Fill = new SolidColorBrush(Colors.LightGreen);
                     testConnectionButton.IsEnabled = false;
@@ -39,6 +42,7 @@ namespace Database
         {
             if (IsLoaded)
             {
+                Database.Connection = null;
                 connectionLight.Fill = new SolidColorBrush(Colors.Gray);
                 testConnectionButton.IsEnabled = true;
                 cancelButton.Content = "Cancel";
@@ -47,6 +51,7 @@ namespace Database
 
         private void PasswordChanged (object sender, RoutedEventArgs e)
         {
+            Database.Connection = null;
             connectionLight.Fill = new SolidColorBrush(Colors.Gray);
             testConnectionButton.IsEnabled = true;
             cancelButton.Content = "Cancel";
