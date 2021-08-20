@@ -1,12 +1,12 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 
 namespace DataGeneration
 {
     internal class Program
     {
-        private readonly Random rand = new(0);
-
+        private readonly Random rand = new();
         private static void Main ()
         {
             Program program = new();
@@ -15,26 +15,31 @@ namespace DataGeneration
 
         private void GenerateData (int pointCount)
         {
-            _ = ScottPlot.DataGen.RandomWalk(rand, pointCount);
-            _ = ScottPlot.DataGen.RandomWalk(rand, pointCount);
-            _ = ScottPlot.DataGen.RandomWalk(rand, pointCount);
-            double[] y = ScottPlot.DataGen.RandomWalk(rand, pointCount);
-            double[] y2 = ScottPlot.DataGen.RandomWalk(rand, pointCount);
+            double[] gun_id = ScottPlot.DataGen.Consecutive(pointCount);
+
+            DateTime currentDate = new DateTime(1993, 1, 1);
+            DateTime[] dates = new DateTime[pointCount];
+            for (int i = 0; i < pointCount; i++)
+            {
+                DateTime date = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, rand.Next(0, 24), rand.Next(0, 60), rand.Next(0, 60));
+                dates[i] = date;
+                currentDate = currentDate.AddDays(1);
+            }
+
+            double[] fi = ScottPlot.DataGen.RandomWalk(rand, pointCount);
+            double[] fv = ScottPlot.DataGen.RandomWalk(rand, pointCount);
+            double[] temp = ScottPlot.DataGen.RandomWalk(rand, pointCount);
+            double[] emi = ScottPlot.DataGen.RandomWalk(rand, pointCount);
 
             string[] lines = new string[pointCount];
-            string[] lines2 = new string[pointCount];
+            lines[0] = "gunID, datetime, FI, FV, temp, emi";
 
-            lines[0] = "time, precipitation";
-            lines2[0] = "time, wind";
-
-            for (int i = 1; i < pointCount; i++)
+            for (int i = 0; i < pointCount; i++)
             {
-                lines[i] = i.ToString() + "," + y[i].ToString();
-                lines2[i] = i.ToString() + "," + y2[i].ToString();
+                lines[i] = gun_id[i].ToString() + "," + dates[i].ToString("yyyy-M-d H:m:s") + "," + fi[i].ToString() + "," + fv[i].ToString() + "," + temp[i].ToString() + "," + emi[i].ToString();
             }
-            File.WriteAllLines("precipitation.csv", lines);
-            File.WriteAllLines("wind.csv", lines2);
 
+            File.WriteAllLines("gun.csv", lines);
         }
     }
-}
+}  
