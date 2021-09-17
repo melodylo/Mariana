@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31605.320
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mariana", "Mariana.csproj", "{172DA527-7B12-435C-9CC5-47337A7C69ED}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SqlDBLibrary", "..\DbQueries\SqlDBLibrary.csproj", "{ED5D3D3A-EB15-4C91-851F-ABE929D81A76}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VacuumGauge", "..\MKS910PGauge\VacuumGauge.csproj", "{48FBD8F8-D641-426F-8CD2-51E61067D473}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{172DA527-7B12-435C-9CC5-47337A7C69ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{172DA527-7B12-435C-9CC5-47337A7C69ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{172DA527-7B12-435C-9CC5-47337A7C69ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{172DA527-7B12-435C-9CC5-47337A7C69ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED5D3D3A-EB15-4C91-851F-ABE929D81A76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED5D3D3A-EB15-4C91-851F-ABE929D81A76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED5D3D3A-EB15-4C91-851F-ABE929D81A76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED5D3D3A-EB15-4C91-851F-ABE929D81A76}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48FBD8F8-D641-426F-8CD2-51E61067D473}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48FBD8F8-D641-426F-8CD2-51E61067D473}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48FBD8F8-D641-426F-8CD2-51E61067D473}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48FBD8F8-D641-426F-8CD2-51E61067D473}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {951DACA7-220C-4384-81DA-B7C0D97F77D8}
+	EndGlobalSection
+EndGlobal
